@@ -1,59 +1,60 @@
 import  streamlit as st
 
 st.title("welcome to the health dashboard")
+import streamlit as st
+import hashlib
 
-
-# Dummy user credentials
-users = {
-    "admin": "admin123",
-    "prince": "securepass",
-    "guest": "guest123"
+# Dummy credentials
+USER_DB = {
+    "prince": hashlib.sha256("secure123".encode()).hexdigest(),
+    "admin": hashlib.sha256("adminpass".encode()).hexdigest()
 }
 
-# Page setup
-st.set_page_config(page_title="Login Page", layout="centered")
-st.title("🔐 User Login")
-
-# Login form
-with st.form("login_form"):
-    username = st.text_input("Username", placeholder="Enter your username")
-    password = st.text_input("Password", placeholder="Enter your password", type="password")
-    login_btn = st.form_submit_button("Login")
-
-# Login logic
-if login_btn:
-    if not username or not password:
-        st.warning("Please fill in both username and password.")
-    elif username in users and users[username] == password:
-        st.success(f"Welcome, {username}!")
-        st.balloons()
-        # You can redirect to another page or show dashboard here
-    else:
-        st.error("Invalid username or password.")
-
-
-
-# Dashboard UI
-st.title("📊 Health Assistant Dashboard")
-st.write("Welcome to your health assistant dashboard, Prince!")
-
-# Example health metrics
-st.metric("Heart Rate", "72 bpm")
-st.metric("Blood Pressure", "120/80 mmHg")
-
-# 🚶 Step Count Section
-st.subheader("🚶 Daily Step Count")
-step_goal = 10000
-steps_today = 6842  # You can make this dynamic later
-
-progress = int((steps_today / step_goal) * 100)
-st.progress(progress)
-st.write(f"You've walked **{steps_today} steps** today out of your goal of **{step_goal} steps**.")
-
-# Log out button
-if st.button("Log Out"):
+# Initialize session state
+if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
-    st.experimental_rerun()
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "show_balloons" not in st.session_state:
+    st.session_state.show_balloons = False
+
+# Login Page
+def login_page():
+    st.title("🔐 Login")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
+    if st.button("Login"):
+        hashed_pw = hashlib.sha256(password.encode()).hexdigest()
+        if username in USER_DB and USER_DB[username] == hashed_pw:
+            st.session_state.logged_in = True
+            st.session_state.username = username
+            st.session_state.show_balloons = True  # Trigger balloons
+
+        else:
+            st.error("❌ Invalid username or password")
+
+# Dashboard Page
+def dashboard_page():
+    if st.session_state.show_balloons:
+        st.balloons()
+        st.session_state.show_balloons = False  # Prevent repeat animation
+
+    st.title("📊 Dashboard Homepage")
+    st.write(f"Welcome, **{st.session_state.username}**! You're now inside the protected health assistant dashboard.")
+    st.metric("Heart Rate", "72 bpm")
+    st.metric("Blood Pressure", "120/80 mmHg")
+    if st.button("Log Out"):
+        st.session_state.logged_in = False
+        st.session_state.username = ""
+        st.experimental_rerun()
+
+# Routing Logic
+if st.session_state.logged_in:
+    dashboard_page()
+else:
+    login_page()
+
+
 import streamlit as st
 import requests
 import folium
@@ -380,75 +381,235 @@ for i, q in enumerate(quiz):
 
 st.markdown("---")
 st.metric("Your Score", f"{score} / {len(quiz)}")
-# MOOD TRACKER
+mood_music = {
+    "😊 Happy": {
+        "playlist": "https://open.spotify.com/playlist/37i9dQZF1DXdPec7aLTmlC",
+        "suggestion": "Uplifting pop and feel-good beats to keep your energy high!"
+    },
+    "😢 Sad": {
+        "playlist": "https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0",
+        "suggestion": "Gentle acoustic and comforting melodies to soothe your heart."
+    },
+    "😠 Angry": {
+        "playlist": "https://open.spotify.com/playlist/37i9dQZF1DWYxwmBaMqxsl",
+        "suggestion": "Powerful rock and cathartic tracks to release tension."
+    },
+    "😨 Anxious": {
+        "playlist": "https://open.spotify.com/playlist/37i9dQZF1DWU0ScTcjJBdj",
+        "suggestion": "Calming ambient sounds and soft piano to ease your mind."
+    },
+    "😴 Tired": {
+        "playlist": "https://open.spotify.com/playlist/37i9dQZF1DWZd79rJ6a7lp",
+        "suggestion": "Sleep-inducing tones and slow rhythms for deep rest."
+    },
+    "😐 Neutral": {
+        "playlist": "https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO",
+        "suggestion": "Balanced background music for focus and clarity."
+    }
+}
+mood = st.selectbox("How are you feeling today?", list(mood_music.keys()))
+selected = mood_music[mood]
+
+st.subheader("🎵 Music Recommendation")
+st.write(selected["suggestion"])
+st.markdown(f"[Open Playlist]({selected['playlist']})")
+
+# Optional: Embed Spotify player
+st.markdown(f"""
+<iframe src="https://open.spotify.com/embed/playlist/{selected['playlist'].split('/')[-1]}" width="100%" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>
+""", unsafe_allow_html=True)
+mood_meditation = {
+    "😊 Happy": "https://www.youtube.com/watch?v=ZToicYcHIOU",
+    "😢 Sad": "https://www.youtube.com/watch?v=4pLUleLdwY4",
+    "😠 Angry": "https://www.youtube.com/watch?v=I0a3Wc3wC4c",
+    "😨 Anxious": "https://www.youtube.com/watch?v=MIr3RsUWrdo",
+    "😴 Tired": "https://www.youtube.com/watch?v=1vx8iUvfyCY",
+    "😐 Neutral": "https://www.youtube.com/watch?v=inpok4MKVLM"
+}
+
+st.subheader("🧘 Guided Meditation")
+st.markdown(f"[Start Meditation]({mood_meditation[mood]})")
 import streamlit as st
 import pandas as pd
-import datetime
-import matplotlib.pyplot as plt
+import plotly.express as px
 
-# File to store mood logs
-MOOD_LOG = "mood_log.csv"
+# Load mood log
+df = pd.read_csv("mood_log.csv")
+df["Date"] = pd.to_datetime(df["Date"])
 
-# Load or create mood log
-try:
-    df = pd.read_csv(MOOD_LOG)
-except FileNotFoundError:
-    df = pd.DataFrame(columns=["Date", "Mood", "Note"])
+# Map moods to scores
+mood_scores = {
+    "😊 Happy": 5,
+    "😐 Neutral": 3,
+    "😢 Sad": 1,
+    "😠 Angry": 2,
+    "😨 Anxious": 2,
+    "😴 Tired": 2
+}
+df["Mood Score"] = df["Mood"].map(mood_scores)
+
+# Classy Plotly chart
+st.subheader("📈 Your Mood Journey")
+fig = px.line(
+    df,
+    x="Date",
+    y="Mood Score",
+    markers=True,
+    text=df["Mood"],
+    title="Mood Trend Over Time",
+    color_discrete_sequence=["#00BFFF"],
+)
+
+fig.update_traces(
+    line=dict(width=3),
+    marker=dict(size=10, color="#FF69B4"),
+    textposition="top center",
+    hovertemplate="<b>Date:</b> %{x}<br><b>Mood:</b> %{text}<br><b>Score:</b> %{y}"
+)
+
+fig.update_layout(
+    xaxis_title="Date",
+    yaxis_title="Mood Score (1–5)",
+    plot_bgcolor="#F0F8FF",
+    paper_bgcolor="#F8F8FF",
+    font=dict(family="Arial", size=14),
+    title_font=dict(size=20),
+    margin=dict(t=60, b=40, l=20, r=20)
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+
+
+
+
+import streamlit as st
+import os
+from datetime import datetime
+
+# Directory to store reports
+REPORT_DIR = "medical_reports"
+os.makedirs(REPORT_DIR, exist_ok=True)
 
 # UI
-st.title("🌤 Mood Tracker")
-today = datetime.date.today()
-st.write(f"Log your mood for **{today}**")
+st.title("🗂️ Medical Report Vault")
+st.write("Upload, view, download, or delete your medical reports securely.")
 
-# Mood options
-mood = st.selectbox("How are you feeling today?", ["😊 Happy", "😢 Sad", "😠 Angry", "😨 Anxious", "😴 Tired", "😐 Neutral"])
-note = st.text_area("Want to add a note or reflection?", placeholder="Write about your day...")
+# Upload section
+uploaded_file = st.file_uploader("📤 Upload your medical report", type=["pdf", "jpg", "png", "jpeg"])
+if uploaded_file:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{timestamp}_{uploaded_file.name}"
+    filepath = os.path.join(REPORT_DIR, filename)
+    with open(filepath, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    st.success(f"✅ Report '{uploaded_file.name}' uploaded successfully!")
 
-if st.button("Save Mood"):
-    new_entry = pd.DataFrame([[today, mood, note]], columns=["Date", "Mood", "Note"])
-    df = pd.concat([df, new_entry], ignore_index=True)
-    df.to_csv(MOOD_LOG, index=False)
-    st.success("✅ Mood saved!")
+# List stored reports
+st.subheader("📁 Your Stored Reports")
+files = os.listdir(REPORT_DIR)
+if files:
+    for file in sorted(files, reverse=True):
+        file_path = os.path.join(REPORT_DIR, file)
+        st.markdown(f"📄 **{file}**")
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            with open(file_path, "rb") as f:
+                st.download_button(label="⬇️ Download", data=f, file_name=file)
+        with col2:
+            if st.button(f"🗑️ Delete '{file}'", key=file):
+                os.remove(file_path)
+                st.warning(f"🗑️ '{file}' has been deleted.")
 
-# Mood trends
-st.subheader("📊 Mood Trends")
-if not df.empty:
-    mood_counts = df["Mood"].value_counts()
-    st.bar_chart(mood_counts)
-
-    # Show recent entries
-    st.subheader("📝 Recent Entries")
-    st.dataframe(df.tail(5))
 else:
-    st.info("No mood data yet. Start tracking today!")
-
-# Inspirational quote
-quotes = {
-    "😊 Happy": "Keep shining. Your joy is contagious!",
-    "😢 Sad": "It's okay to feel down. Tomorrow is a new day.",
-    "😠 Angry": "Take a breath. You’re stronger than your anger.",
-    "😨 Anxious": "You’ve survived 100% of your worst days.",
-    "😴 Tired": "Rest is productive too. Recharge.",
-    "😐 Neutral": "Even calm days matter. Stay grounded."
-}
-if mood in quotes:
-    st.markdown(f"### 🌈 Quote of the Day\n> {quotes[mood]}")
-# CUSTOM BACKGROUND
+    st.info("No reports uploaded yet.")
 import streamlit as st
+import pandas as pd
 
-# Inject custom CSS for background
-page_bg_img = """
-<style>
-[data-testid="stAppViewContainer"] > div:first-child {
-    background-image: url("")
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+# Sample data (can be replaced with live data or database)
+data = {
+    "Disease": [
+        "Acute Diarrheal Disease (ADD)",
+        "Typhoid",
+        "Cholera",
+        "Hepatitis A",
+        "Hepatitis E",
+        "Shigellosis",
+        "Japanese Encephalitis",
+        "Scrub Typhus"
+    ],
+    "Cases": [1240, 870, 430, 520, 310, 290, 150, 180]
 }
-</style>
-"""
 
-st.markdown(page_bg_img, unsafe_allow_html=True)
+df = pd.DataFrame(data)
+
+# UI
+st.title("💬 Waterborne Disease Chat")
+st.write("📍 Region: Rural Northeast India")
+st.write("🧪 Showing latest disease burden and case counts")
+
+# Display disease data
+for i, row in df.iterrows():
+    st.markdown(f"""
+    **🦠 Disease:** {row['Disease']}  
+    **📊 Cases Reported:** {row['Cases']}  
+    ---
+    """)
+
+# Summary
+total_cases = df["Cases"].sum()
+st.success(f"✅ Total Waterborne Disease Cases Reported: {total_cases}")
+
+# Optional: Add filters or chatbot-style input
+st.subheader("🔍 Ask about a specific disease")
+query = st.text_input("Type disease name (e.g., Cholera)")
+if query:
+    match = df[df["Disease"].str.contains(query, case=False)]
+    if not match.empty:
+        for _, row in match.iterrows():
+            st.info(f"{row['Disease']} has {row['Cases']} reported cases.")
+    else:
+        st.warning("Disease not found in current dataset.")
+import streamlit as st
+import pandas as pd
+from datetime import datetime, timedelta
+import os
+
+# File to store appointments
+APPT_FILE = "appointments.csv"
+if not os.path.exists(APPT_FILE):
+    pd.DataFrame(columns=["Name", "Date", "Time", "Message"]).to_csv(APPT_FILE, index=False)
+
+# Title
+st.title("📅 Appointment Reminder System")
+
+# Form to schedule appointment
+with st.form("schedule_form"):
+    name = st.text_input("Patient Name")
+    date = st.date_input("Appointment Date", min_value=datetime.today())
+    time = st.time_input("Appointment Time")
+    message = st.text_area("Reminder Message", value="This is a reminder for your upcoming appointment.")
+    submit = st.form_submit_button("📌 Schedule Appointment")
+
+# Save appointment
+if submit:
+    new_appt = pd.DataFrame([[name, date.strftime("%Y-%m-%d"), time.strftime("%H:%M"), message]],
+                            columns=["Name", "Date", "Time", "Message"])
+    df = pd.read_csv(APPT_FILE)
+    df = pd.concat([df, new_appt], ignore_index=True)
+    df.to_csv(APPT_FILE, index=False)
+    st.success(f"✅ Appointment for {name} scheduled on {date} at {time.strftime('%H:%M')}")
+
+# Load and show upcoming appointments
+st.subheader("📋 Upcoming Appointments")
+df = pd.read_csv(APPT_FILE)
+if not df.empty:
+    df["DateTime"] = pd.to_datetime(df["Date"] + " " + df["Time"], format="mixed" )
+    upcoming = df[df["DateTime"] >= datetime.now()].sort_values("DateTime")
+    st.dataframe(upcoming[["Name", "Date", "Time", "Message"]])
+else:
+    st.info("No appointments scheduled yet.")
+
+
 
 
